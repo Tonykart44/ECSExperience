@@ -4,8 +4,10 @@ Created on Tue Mar 22 15:39:12 2016
 
 @author: Robin Amstes
 """
-# check if import is necessary later
-import pyrobotECS
+
+def getOdometry(robot):
+    pass
+    
 
 def getSafetySensors(robot):
     """
