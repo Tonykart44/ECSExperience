@@ -28,13 +28,9 @@ def getSafetySensors(robot):
     dropRight= sensors['wheel-drop-right']
     
     return bumpLeft, bumpRight, bumpFront, dropLeft, dropRight
-
-
-
-
+    
 t_end = time.time()+5
 while time.time() < t_end:
-    
     bumpLeft, bumpRight, bumpFront, dropLeft, dropRight = getSafetySensors(rob)
     
-    print "bumpLeft: ", bumpLeft
+    print "wall sensor: ", rob.sensors.getWall()
