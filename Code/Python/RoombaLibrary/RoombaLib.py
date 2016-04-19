@@ -605,7 +605,8 @@ if __name__ == "__main__":
         angle_threshold = math.pi/2 #[rad]
         state = "start"
         
-        while True:                    
+        while True:   
+            print "State: ", state                 
             bumpLeft, bumpRight  = roomba.sensors.getBumps()
             wall = roomba.sensors.getWallSensor()
             drops = roomba.sensors.getDrops()
@@ -613,21 +614,26 @@ if __name__ == "__main__":
             s = 0
             
             if state == "start": #find outer wall
-                roomba.API.drive(int(speed*1000), 32768)
+                roomba.API.forward()
 
                 if (bumpRight or bumpLeft or wall): 
                     # drive forward until a wall is found
                     roomba.stop()
                     
-                roomba.API.drive(int(speed),1)
+                roomba.API.spin_left()
 
                 while not wall:
                     # turn angle until a wall is found with wall sensor
-                    wall = roomba.sensors.getWallSensor()                   
+                    wall = roomba.sensors.getWallSensor()   
+                    
+                    drops = roomba.sensors.getDrops()
+                    if True in drops:
+                        state = "stop"
+                        print "State: ", state 
                 
                 roomba.stop()
                 roomba.turnAngle(int(speed),math.pi/6)
-                roomba.API.drive(int(speed*1000), 32768)
+                roomba.API.forward()
                 
                 while not wall and not bumpRight and s < 1:
                     # drive forward until a wall is found within 1 m
@@ -635,33 +641,51 @@ if __name__ == "__main__":
                     wall = roomba.sensors.getWallSensor()
                     ds,dth = roomba.sensors.getOdometry('FWD')
                     s = s+ds
+                    
+                    drops = roomba.sensors.getDrops()
+                    if True in drops:
+                        state = "stop"
+                        print "State: ", state 
 
                 if bumpRight:
                     state = "followwall"
+                    print "State: ", state 
                 else:
-                    state = "start_innerwall"                                  
+                    state = "start_innerwall"
+                    print "State: ", state                                   
             
                 if True in drops:
                         state = "stop"
+                        print "State: ", state 
 
                 else:
                     if wall:
                         state = "followwall"
+                        print "State: ", state 
 
                     if bumpLeft:
                         state = "turnCW"
+                        print "State: ", state 
                         
                     elif bumpRight:
                         state = "turnCCW"
+                        print "State: ", state 
                     
             elif state == "start_innerwall":
+                print "State: ", state 
+                drops = roomba.sensors.getDrops()
+                if True in drops:
+                        state = "stop"
+                        print "State: ", state 
                 roomba.turnAngle(int(speed),math.pi/2)
                 roomba.driveStraight(speed,10)
                 roomba.turnAngle(int(speed),math.pi/2)
                 
                 state = "followwall"
+                print "State: ", state 
 
             elif state == "followwall":
+                print "State: ", state 
                 
                 roomba.API.drive(int(speed*1000), smallRadius)               
                 currentAngle = 0
@@ -682,70 +706,90 @@ if __name__ == "__main__":
                     
                 if True in drops:
                     state = "stop"
+                    print "State: ", state 
 
                 else: 
                     if wall and not bumpRight:
                         state = "followwall" 
+                        print "State: ", state 
 
                     elif not bumpRight:
                         state = "findwall"
+                        print "State: ", state 
 
                     if bumpLeft:
                         state = "turnCW"
+                        print "State: ", state 
 
                     elif bumpRight:
                         state = "turnCCW"
+                        print "State: ", state 
                     
             elif state == "findwall":
-                
+                print "State: ", state                 
                 roomba.turnAngle(speed, angle/2)
                 roomba.driveStraight(speed, distance)             
-                roomba.driveArc(speed, bigRadius, angle)
+                roomba.driveArc(speed, bigRadius/1000, angle)
                 
                 if True in drops:
                     state = "stop"
+                    print "State: ", state 
 
                 else:
                     if wall:
-                        state = "followwall" 
+                        state = "followwall"
+                        print "State: ", state 
 
                     else:
                         state = "findwall"
+                        print "State: ", state 
 
                     if bumpLeft:
                         state = "turnCW"
+                        print "State: ", state 
 
                     elif bumpRight:
                         state = "turnCCW"
+                        print "State: ", state 
                     
             elif state == "turnCW":
+                print "State: ", state 
                 roomba.turnAngle(speed, -angle/2, True)
 
                 if True in drops:
                     state = "stop"
+                    print "State: ", state 
 
                 else:
                     if wall or True in cliffs:
                         state = "followwall" 
+                        print "State: ", state 
 
                     else:
                         state = "findwall" 
+                        print "State: ", state 
                         
             elif state == "turnCCW":
+                print "State: ", state 
                 roomba.turnAngle(speed, angle/2, True)
 
                 if True in drops:
                     state = "stop"
+                    print "State: ", state 
 
                 else:
                     if wall or True in cliffs:
                         state = "followwall" 
+                        print "State: ", state 
 
                     else:
-                        state = "findwall" 
-                state = "followwall" 
+                        state = "findwall"
+                        print "State: ", state 
+                state = "followwall"
+                print "State: ", state 
                 
             elif state == "stop":
+                print "State: ", state 
                 roomba.stop()
                 sys.exit("Code execution stopped.")
     
