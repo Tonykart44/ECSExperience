@@ -1,4 +1,4 @@
-def driveStraight(robot,velocity,distance,):
+def driveStraight(robot,velocity,distance):
 
     sensors = robot.sensors.getBumpsandWheelDrops() #dict with sensors
     roombaStopped = 0 #Roomba is stopped or driving
