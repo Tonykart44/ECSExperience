@@ -605,12 +605,12 @@ if __name__ == "__main__":
         angle_threshold = math.pi/2 #[rad]
         state = "start"
         
-        while True:
-            
+        while True:                    
             bumpLeft, bumpRight  = roomba.sensors.getBumps()
             wall = roomba.sensors.getWallSensor()
             drops = roomba.sensors.getDrops()
             cliffs = roomba.sensors.getCliffs()
+            s = 0
             
             if state == "start": #find outer wall
                 roomba.API.drive(int(speed*1000), 32768)
@@ -619,13 +619,29 @@ if __name__ == "__main__":
                     # drive forward until a wall is found
                     roomba.stop()
                     
-                roomba.turnAngle(speed,angle)
+                roomba.API.drive(int(speed),1)
 
-                if wall
-                    #turn angle until a wall is found with wall sensor
-                    roomba.stop()
-                    
-                    if True in drops:
+                while not wall:
+                    # turn angle until a wall is found with wall sensor
+                    wall = roomba.sensors.getWallSensor()                   
+                
+                roomba.stop()
+                roomba.turnAngle(int(speed),math.pi/6)
+                roomba.API.drive(int(speed*1000), 32768)
+                
+                while not wall and not bumpRight and s < 1:
+                    # drive forward until a wall is found within 1 m
+                    bumpLeft, bumpRight  = roomba.sensors.getBumps()
+                    wall = roomba.sensors.getWallSensor()
+                    ds,dth = roomba.sensors.getOdometry('FWD')
+                    s = s+ds
+
+                if bumpRight:
+                    state = "followwall"
+                else:
+                    state = "start_innerwall"                                  
+            
+                if True in drops:
                         state = "stop"
 
                 else:
@@ -637,6 +653,13 @@ if __name__ == "__main__":
                         
                     elif bumpRight:
                         state = "turnCCW"
+                    
+            elif state == "start_innerwall":
+                roomba.turnAngle(int(speed),math.pi/2)
+                roomba.driveStraight(speed,10)
+                roomba.turnAngle(int(speed),math.pi/2)
+                
+                state = "followwall"
 
             elif state == "followwall":
                 
