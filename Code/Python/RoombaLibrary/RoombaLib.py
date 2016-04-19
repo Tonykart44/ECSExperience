@@ -250,18 +250,18 @@ class Roomba(object):
         
 ################################### DRIVING ###################################
 #==============================================================================
-#    def drive(self, velocity, radius):  
-#    UNDER CONSTRUCTION     
-#        
-#        velocity = abs(velocity*1000) #mm/s to m/s
-#        velocity *= 1000
-#        radius *= 1000
-#    # TODO check speed limits
-#    # TODO make conversions clearer
-#    # TODO check backwards arc
-#        if self.sensors.checkSafe():
-#            
-#            self.API.drive(int(velocity), int(radius))
+    def drive(self, velocity, radius):  
+    # UNDER CONSTRUCTION     
+        
+        velocity = abs(velocity*1000) #mm/s to m/s
+        velocity *= 1000
+        radius *= 1000
+    # TODO check speed limits
+    # TODO make conversions clearer
+    # TODO check backwards arc
+        if self.sensors.checkSafe():
+            
+            self.API.drive(int(velocity), int(radius))
 
             
 #==============================================================================
@@ -612,13 +612,18 @@ if __name__ == "__main__":
             drops = roomba.sensors.getDrops()
             cliffs = roomba.sensors.getCliffs()
             
-            if state == "start":
+            if state == "start": #find outer wall
                 roomba.API.drive(int(speed*1000), 32768)
-                while not (bumpRight or bumpLeft or wall): 
-                    # drive -5 cm
-                
-                while not wall and angle < math.pi/2:
-                    #turn CCW
+
+                if (bumpRight or bumpLeft or wall): 
+                    # drive forward until a wall is found
+                    roomba.stop()
+                    
+                roomba.turnAngle(speed,angle)
+
+                if wall
+                    #turn angle until a wall is found with wall sensor
+                    roomba.stop()
                     
                     if True in drops:
                         state = "stop"
