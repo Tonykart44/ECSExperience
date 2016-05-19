@@ -30,7 +30,7 @@ class LIDAR(object):
         self.initPort = 7071 # port used only to initialise LIDAR communication
         self.initOpcode = '201' # opcode used to initialize LIDAR communcation
         self.localPort = 7070 # port used for all other communication with LIDAR
-
+        
     def initLidar(self):
         """
             Function that initialises LIDAR communication, very simular to 
@@ -72,6 +72,7 @@ class LIDAR(object):
         # Close incoming UDP socket.        
         inUdpSocket.close()
         
+        print "udpData = " ,udpData
         return udpData
 
     def getScan(self):
@@ -80,28 +81,25 @@ class LIDAR(object):
             This function is very simular to getLidarScan.m in the old 
             RoombaCommunicationToolbox
         """
-        self.initLidar()
         t_start = time.time()
         t_end = t_start + 1
         scan = []
-        while time.time() <= t_end or len(scan) < 50: # Make sure no infinite loop is possible
-            print time.time()
+        while time.time() <= t_end: # Make sure no infinite loop is possible
+            
             udpdata = self.udp_receive() #Receiving udp data from LIDAR as string
             udpdata = udpdata[1:len(udpdata)-2] # Remove first 2 and last 2 characters
             bytes_str = udpdata.split(',') # Split bytes at commas
 #            bytes_str=map(int, udpdata.split(","))
+            print "bytes_str = ", bytes_str
             
             data = [] # Convert to floats
             for byte_str in bytes_str:
-                try:
-                    byte_float = float(byte_str)
-                    data.append(byte_float)
-                except:
-                    data = []
+                byte_float = float(byte_str)
+                data.append(byte_float)
             
             n = len(data)
             
-            if n%4 == 0 and n>50: # four bytes per measurement, minimum 100 measurements
+            if n%4 == 0 and n>100: # four bytes per measurement, minimum 100 measurements
                 
                 for i in range(0,n,4):
                     n+=1
@@ -125,28 +123,11 @@ class LIDAR(object):
                     
                     angle_i = float((angle_int >> 1)/64) #  Shift one place and convert to float, like MATLAB code
                     angle_i = math.radians(angle_i) # convert angle to radians
-                    angle_i = angle_i - math.floor(angle_i/(2*math.pi))*2*math.pi # Limit angle to 2 pi
+                    angle_i = angle_i - math.floor(angle_i/2*math.pi)*2*math.pi # Limit angle to 2 pi
                     dist_i = float((dist_int)/4) # Convert to float, like MATLAB
                     dist_i = dist_i/1000 # convert to m
                     
                     scan.append([dist_i,angle_i])
-
-# TODO: test this part
-                # Check whether received data makes sense
-                # If there are some distance measurements that are 0, chances
-                # are that the measurement is good 
-                while i <= len(scan):
-                    point = scan[i]
-                    dist = point[0]
-                    if dist <= 0:
-                        return scan
-                        # Could try break as well
-                    else:
-                        i +=1
-                        
-                if i >= len(scan):
-                    data = []
-                    scan = []
                     
         return scan
 
@@ -739,8 +720,8 @@ if __name__ == "__main__":
     flags = sys.argv[1:] #Specified flags when running file
     
     baudrate = 115200
-    port = "/dev/ttyUSB1"    
-    alternativePort = "/dev/ttyUSB0"
+    port = "/dev/ttyUSB0"    
+    alternativePort = "/dev/ttyUSB1"
     
     if "-help" in flags:
         print "Possible flags: "
@@ -1196,12 +1177,6 @@ if __name__ == "__main__":
     elif "-lidardemo" in flags:
         roomba = Roomba(port, baudrate)
         roomba.sensors.lidar.initLidar()
-        scan = roomba.sensors.lidar.getScan()
-        
-        print "LIDAR measurements: "
-#        for measurement in scan:
-#            print measurement
-
         scan = roomba.sensors.lidar.getScan()
         
         print "LIDAR measurements: "
