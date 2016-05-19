@@ -14,7 +14,7 @@ and are created on making first object from class roomba.
 """
 
 #Create object rob from class roomba from module pyrobotECS, connected via a given serial port
-rob=pyrobotECS.Roomba('/dev/ttyUSB0')
+rob=pyrobotECS.Roomba('/dev/ttyUSB1')
 
 # Robot in control mode, & play a beep
 rob.Control()

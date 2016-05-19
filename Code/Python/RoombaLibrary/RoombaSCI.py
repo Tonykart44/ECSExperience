@@ -518,6 +518,8 @@ class RoombaAPI(object):
             # Play first notes of the final countdown
             # TFC full: C# B C# F# D C# D C# B D C# D F# B A B A G# B A G# A B A B C# B A G# F D C# C# C# D C# B C#
              self.send_to_roomba([140,songNum,4,73,8,71,8,73,32,66,32])
+        elif song == 'SW':
+            self.send_to_roomba([140, songNum,7,43,32,62,32,60,11,47,11,45,11,55,32,62,32])
 
         else:
             self.send_to_roomba([

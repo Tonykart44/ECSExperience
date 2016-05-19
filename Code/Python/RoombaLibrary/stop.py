@@ -14,3 +14,11 @@ try:
 except:
     rob=pyrobotECS.Roomba('/dev/ttyUSB1')
     rob.Stop()
+    
+try: 
+    rob=pyrobotECS.Roomba('/dev/ttyUSB1')
+    rob.Stop()
+    
+except:
+    rob=pyrobotECS.Roomba('/dev/ttyUSB0')
+    rob.Stop()
