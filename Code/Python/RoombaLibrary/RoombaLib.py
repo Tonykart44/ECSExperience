@@ -394,6 +394,8 @@ class Roomba(object):
 #        self.API.connect()
         self.API.full()
         self.ECS = ECSRoomba(comPort)
+        self.ECS.Control() # Set rto control mode
+        self.ECS.sci.full() # Set to full mode
         self.sensors = Sensors(self, 10)
 
         
@@ -406,7 +408,6 @@ class Roomba(object):
         radius *= 1000
     # TODO check speed limits
     # TODO make conversions clearer
-    # TODO check backwards arc      
         self.API.drive(int(velocity), int(radius))
 
             
@@ -790,15 +791,15 @@ if __name__ == "__main__":
             drops = roomba.sensors.getDrops()
             
             if state == "start":
-                
-                # Drive in a straight line untill a wall is found
-                print "Drive forward untill wall is found with bump sensor."
-                roomba.driveStraight(speed, 10)               
+
+                roomba.driveStraight(speed, 10)    # Drive forward untill wall is found with bump sensor."
+                roomba.turnAngle(speed, -math.pi/2, True) # Turn CCW untill wall is found with bump sensor."
+                roomba.driveStraight(speed, 10)    # Drive forward untill wall is found with bump sensor."
                 
                 # Look around till wall if found
                 roomba.API.spin_left()
                 th = 0
-                while not wall and not True in drops and th <= math.radians(110):
+                while not wall and not True in drops and th <= math.pi:
                     print "Turn CCW until wall is found with wall sensor."
                     wall = roomba.sensors.getWallSensor()   
                     drops = roomba.sensors.getDrops()
@@ -809,6 +810,9 @@ if __name__ == "__main__":
                         state = "stop"
                     if wall:
                         state = "followwall"
+                
+                if not wall:
+                    state = "stop" # After while stop roomba when no wall is found
                 
             elif state == "followwall":
                 th = 0
@@ -875,22 +879,26 @@ if __name__ == "__main__":
                 roomba.turnAngle(speed, 2*angle_threshold)
                 roomba.driveArc(speed, bigRadius, math.pi, True)
                 
-                 # Look around till wall if found
-                roomba.API.spin_left()
-                th = 0
-                while not wall and not True in drops and th <= math.radians(110):
-                    wall = roomba.sensors.getWallSensor()   
-                    drops = roomba.sensors.getDrops()
-                    ds,dth = roomba.sensors.getOdometry('CCW')
-                    th += dth
-                    # Safety check
-                    if True in drops:
+                if not bumpRight or bumpLeft:
+                     # Look around till wall if found
+                    roomba.API.spin_left()
+                    th = 0
+                    while not wall and not True in drops and th <= math.radians(110):
+                        wall = roomba.sensors.getWallSensor()   
+                        drops = roomba.sensors.getDrops()
+                        ds,dth = roomba.sensors.getOdometry('CCW')
+                        th += dth
+                        # Safety check
+                        if True in drops:
+                            state = "stop"
+                        if wall:
+                            state = "followwall"
+                            
+                    if not wall:
                         state = "stop"
-                    if wall:
-                        state = "followwall"
-                        
-                if not wall:
-                    state = "stop"
+                else:
+                     state = "findwall"  
+                
                 
             elif state == "stop":
                 # Play song
