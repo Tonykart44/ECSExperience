@@ -82,22 +82,25 @@ class LIDAR(object):
         """
         self.initLidar()
         t_start = time.time()
-        t_end = t_start + 1
+        t_end = t_start + 3
         scan = []
-        while time.time() <= t_end or len(scan) < 50: # Make sure no infinite loop is possible
-            print time.time()
+        while time.time() <= t_end and len(scan) < 50: # Make sure no infinite loop is possible
             udpdata = self.udp_receive() #Receiving udp data from LIDAR as string
             udpdata = udpdata[1:len(udpdata)-2] # Remove first 2 and last 2 characters
-            bytes_str = udpdata.split(',') # Split bytes at commas
+            
 #            bytes_str=map(int, udpdata.split(","))
             
             data = [] # Convert to floats
-            for byte_str in bytes_str:
-                try:
-                    byte_float = float(byte_str)
-                    data.append(byte_float)
-                except:
-                    data = []
+            try:
+                bytes_str = udpdata.split(',') # Split bytes at commas
+                for byte_str in bytes_str:
+                    try:
+                        byte_float = float(byte_str)
+                        data.append(byte_float)
+                    except:
+                        data = []
+            except:
+                data = []
             
             n = len(data)
             
@@ -140,14 +143,16 @@ class LIDAR(object):
                     dist = point[0]
                     if dist <= 0:
                         return scan
-                        # Could try break as well
+                        # Could try break as well, but this stops both loops
                     else:
                         i +=1
                         
                 if i >= len(scan):
+                    print "Nothing usefull received from LIDAR, trying again."
                     data = []
                     scan = []
-                    
+        if len(scan) == 0:
+            print "LIDAR scan failed, no measurements were returned."
         return scan
 
 ###############################################################################
@@ -1207,8 +1212,8 @@ if __name__ == "__main__":
         scan = roomba.sensors.lidar.getScan()
         
         print "LIDAR measurements: "
-#        for measurement in scan:
-#            print measurement
+        for measurement in scan:
+            print measurement
 
         scan = roomba.sensors.lidar.getScan()
         
