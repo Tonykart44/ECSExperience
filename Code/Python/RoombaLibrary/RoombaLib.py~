@@ -51,8 +51,8 @@ class LIDAR(object):
             This function should only be called after initLidar
         """     
         udpInPort = int(self.localPort)
-        UDPTIMEOUT = 1
-        udpInBufferLength = 6000
+        UDPTIMEOUT = 2
+        udpInBufferLength = 8000
 
         localIP = socket.gethostbyname('localhost')
         localAddr = (localIP,udpInPort)
@@ -143,6 +143,7 @@ class LIDAR(object):
                     point = scan[i]
                     dist = point[0]
                     if dist <= 0:
+			del scan[-1] # remove last element from scan as it is usually wrong
                         return scan
                         # Could try break as well, but this stops both loops
                     else:
@@ -154,7 +155,19 @@ class LIDAR(object):
                     scan = []
         if len(scan) == 0:
             print "LIDAR scan failed, no measurements were returned."
+
         return scan
+	
+    def getShortestDistance(self, scan):
+	r_min = 10 #initialize as big number, to be replaced in loop
+	if len(scan) > 0:
+		
+		for point in scan:
+			dist = point[0]
+			if dist >= 0.1 and dist <= r_min: # Ignore zeros
+				r_min = dist
+	
+	return r_min
 
 ###############################################################################
 ################################ SENSOR CLASS #################################
@@ -753,8 +766,8 @@ if __name__ == "__main__":
     flags = sys.argv[1:] #Specified flags when running file
     
     baudrate = 115200
-    port = "/dev/ttyUSB1"    
-    alternativePort = "/dev/ttyUSB0"
+    port = "/dev/ttyUSB0"    
+    alternativePort = "/dev/ttyUSB1"
     
     if "-help" in flags:
         print "Possible flags: "
@@ -932,6 +945,178 @@ if __name__ == "__main__":
                         startFSM = False
                         roomba.play(3)
                         sys.exit("Code execution stopped.")
+
+    elif  "-FSMLidar" in flags:
+        print "Connecting"
+        try:
+            roomba = Roomba(port,baudrate)
+	    roomba.sensors.lidar.initLidar()
+        except:
+            roomba = Roomba(alternativePort, baudrate)
+	    roomba.sensors.lidar.initLidar()
+        
+        roomba.loadSong(1, 'BEEP')
+        roomba.loadSong(2, 'TFC')
+        roomba.loadSong(3, 'SW')
+        roomba.play(1) 
+        
+        # Initial parameters
+        speed = 0.2 #[m/s]
+        distance = 1 #[m]
+        followRadius = 750 #[mm]
+        bigRadius = -2 #[m]
+        angle_threshold = math.radians(80) #[rad]
+        t_wait = 2 # Time to wait for lidar measurements
+        state = "start" # Initial state
+        
+        # Start program only after clean button has been pushed.
+        startFSM = False
+        print "Press the 'CLEAN' button to start the FSM."        
+        
+        while not startFSM:
+            if roomba.getClean():
+                startFSM = True
+        
+        # Main FSM loop
+        while startFSM:
+            print "State: ", state
+            bumpLeft, bumpRight  = roomba.sensors.getBumps()
+            wall = roomba.sensors.getWallSensor()
+            drops = roomba.sensors.getDrops()
+            
+            if state == "start":
+
+                roomba.driveStraight(speed, 10)    # Drive forward untill wall is found with bump sensor."
+                roomba.turnAngle(speed/2, -math.pi/2, True) # Turn CW untill wall is found with bump sensor."
+                roomba.driveStraight(speed, 10)    # Drive forward untill wall is found with bump sensor."
+                
+                # Look around till wall if found
+                roomba.API.spin_left()
+                th = 0
+                while not wall and not True in drops and th <= math.pi:
+                    wall = roomba.sensors.getWallSensor()   
+                    drops = roomba.sensors.getDrops()
+                    ds,dth = roomba.sensors.getOdometry('CCW')
+                    th += dth
+                    # Safety check
+                    if True in drops:
+                        state = "stop"
+                    if wall:
+                        tmp, tmp2 = roomba.sensors.getOdometry('CCW')
+                        roomba.driveStraight(speed, -0.05, True)  # Drive backwards away from wall
+                        roomba.turnAngle(speed/2, math.pi/4, True) # Turn CCW untill wall is found with bump sensor."
+                        state = "followwall"
+                
+                if not wall:
+                    state = "stop" # After while stop roomba when no wall is found
+                
+            elif state == "followwall":
+                th = 0
+                dth = 0
+                bumpLeft, bumpRight  = roomba.sensors.getBumps()
+                wall = roomba.sensors.getWallSensor()
+                drops = roomba.sensors.getDrops()
+                tmp1,tmp2 = roomba.sensors.getOdometry("FWD") # Call odometry and dont assign values to clear buffer
+
+                while not bumpRight and not True in drops and abs(th) <= abs(angle_threshold):
+                    bumpLeft, bumpRight = roomba.sensors.getBumps()
+                    wall = roomba.sensors.getWallSensor()
+                    drops = roomba.sensors.getDrops()
+                    ds,dth = roomba.sensors.getOdometry("FWD")
+                    th +=dth
+		    scan = roomba.sensors.lidar.getScan(t_wait) 
+	    	    if len(scan) > 0:
+			r_min = roomba.sensors.lidar.getShortestDistance(scan)
+			print r_min
+
+                    if wall or r_min <= 0.5:
+                       roomba.API.drive(int(speed*1000), followRadius)
+                    
+                    else:
+                       roomba.API.drive(int(speed*1000), -followRadius)
+                    
+                    ds, dth = roomba.sensors.getOdometry("FWD")
+                    
+                if True in drops:
+                    state = "stop"
+
+                else: 
+                    if wall and not bumpRight:
+                        state = "followwall" 
+
+                    elif not bumpRight and abs(th) >= abs(angle_threshold):
+                        state = "findwall"
+                
+                    if bumpRight or bumpLeft:
+                        state = "turnCCW"
+                        
+            elif state == "turnCCW":  
+                roomba.API.spin_left()
+                th = 0
+                wall = roomba.sensors.getWallSensor()
+                bumpLeft, bumpRight = roomba.sensors.getBumps()
+                drops = roomba.sensors.getDrops()
+                
+                while not wall and not True in drops and abs(th) <= math.radians(30):
+                    wall = roomba.sensors.getWallSensor()   
+                    drops = roomba.sensors.getDrops()
+                    ds,dth = roomba.sensors.getOdometry('CCW')
+                    th += dth
+                    
+                # Safety check
+                if True in drops:
+                    state = "stop"
+                elif wall:
+                    state = "followwall"
+                else:
+                    state = "findwall"
+                    
+            elif state == "findwall":                
+                tmp1,tmp2 = roomba.sensors.getOdometry('CCW')
+                roomba.turnAngle(speed/2, math.radians(160))                 
+
+                tmp1,tmp2 = roomba.sensors.getOdometry('FWD')
+                roomba.driveArc(speed, bigRadius, math.pi, True)
+                
+                if bumpRight or bumpLeft:
+                     # Look around till wall if found
+                    roomba.API.spin_left()
+                    th = 0
+                    dth = 0
+                    while not wall and not True in drops and th <= math.radians(110):
+                        wall = roomba.sensors.getWallSensor()   
+                        drops = roomba.sensors.getDrops()
+                        ds,dth = roomba.sensors.getOdometry('CCW')
+                        th += dth
+                    # Safety check
+                    if True in drops:
+                        state = "stop"
+                    if wall:
+                        state = "followwall"
+                            
+                    if not wall:
+                        state = "stop"
+                else:
+                     state = "findwall"  
+                
+                
+            elif state == "stop":
+                # Play song
+                roomba.play(2)
+                roomba.stop()
+                
+                # Pauze untill user input is received
+                pauze = True
+                while pauze:
+                    if roomba.getClean():
+                        print "Restarting FSM"
+                        roomba.play(1)
+                        state = "start"
+                        pauze = False
+                    if roomba.getDock() or roomba.getSpot():
+                        startFSM = False
+                        roomba.play(3)
+                        sys.exit("Code execution stopped.")
   
     elif "-demo" in flags:
         roomba = Roomba(port, baudrate)
@@ -1004,7 +1189,7 @@ if __name__ == "__main__":
         roomba = Roomba(port, baudrate)
         roomba.sensors.lidar.initLidar()
 #        time.sleep(2)
-        t_wait = 1
+        t_wait = 2
         
         t_start = time.time()
         t_end = t_start + 20
@@ -1013,8 +1198,11 @@ if __name__ == "__main__":
             scan = roomba.sensors.lidar.getScan(t_wait)
         
             print len(scan), " LIDAR measurements received. "
-#            for measurement in scan:
-#                print measurement     
+            for measurement in scan:
+                print measurement 
+	    if len(scan) > 0:
+	    	r_min = roomba.sensors.lidar.getShortestDistance(scan)
+	    	print "r_min: ", r_min
         
     elif "-control" in flags: 
         roomba = RoombaAPI(port, baudrate)        
