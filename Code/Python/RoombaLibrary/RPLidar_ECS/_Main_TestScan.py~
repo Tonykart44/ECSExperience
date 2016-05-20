@@ -18,12 +18,18 @@ lidar.start_monitor()
 time.sleep(0.5)
 data = lidar.scan_data()
 
+t_start = time.time()
+t_end = t_start + 10
+
+while time.time() < t_end:
+	scan = lidar.get_scan
+	print "data: "
+	for i in range(0,len(data)):
+    		print data[i]
+
 lidar.disconnect()
 
-for i in range(0,len(data)):
-    print data[i]
 
-time.sleep(5)
 # lidar.init_xy_plot()
 # lidar.update_xy_plot()
 
