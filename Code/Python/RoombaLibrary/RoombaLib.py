@@ -189,7 +189,7 @@ class LIDAR(object):
             
             OUTPURS:
                 r_min = minimum range presen in scan (whilst ignoring 0 
-                        measurements)
+                        measurements).
         """
 	r_min = 10 #initialize as big number, to be replaced in loop
 	if len(scan) > 0:
@@ -221,7 +221,7 @@ class Sensors(object):
         True if the sensor is pressed, False if the sensor is not pressed.
         
         INPUTS:
-                self = Sensor object
+                None
         OUTPUTS:
                 bumpLeft = boolean that represents the state of the left bump sensor
                 bumpRight = boolean that represents the state of the right bump sensor
@@ -238,7 +238,7 @@ class Sensors(object):
         sensors, True if the wheel is dropped, False if the wheel is nor dropped
         
         INPUTS:
-                self = Sensor object
+                None
         OUTPUTS:
                 dropLeft = boolean that represents the state of the left drop sensor
                 dropRight = boolean that represents the state of the right drop sensor
@@ -255,7 +255,7 @@ class Sensors(object):
         sensors, True if something is detected, False if nothind is detected
         
         INPUTS:
-                self = Sensor object
+                None
         OUTPUTS:
                 cliffLeft = state of the left most cliff sensor
                 cliffFrontLeft = state of the front left cliff sensor
@@ -278,7 +278,6 @@ class Sensors(object):
         last call off getOdometry().
         
         INPUTS:
-                self = Sensor object
                 direction = direction in which roomba is driving, valid directions:
                     - 'FWD' = driving forward in a straight line or arc
                     - 'BWD' = driving backwards in a straight line or arc
@@ -382,7 +381,7 @@ class Sensors(object):
             - The wheels are not extended (dropsensors are false)
         
         INPUTS:
-                self = Sensor object
+                None
         OUTPUTS:
                 safe = bool that says whether is is safe to drive
         
@@ -407,7 +406,7 @@ class Sensors(object):
         Function that returns the current state of the wall sensor
         
         INPUTS:
-                self = Sensor object
+                None
         OUTPUTS:
                 wall = current state of the wall sensor, True if a wall is detected,
                        False if no wall is detected
@@ -422,7 +421,7 @@ class Sensors(object):
         (in that order)
         
         INPUTS:
-                none
+                None
         OUTPUTS:
                 sensorValues = tuple that contains  the value of the wall, 
                 drop and bump sensors
@@ -455,10 +454,8 @@ class Roomba(object):
     def drive(self, velocity, radius):  
     # UNDER CONSTRUCTION     
         
-        velocity *= 1000
-        radius *= 1000
-    # TODO check speed limits
-    # TODO make conversions clearer
+        velocity *= 1000 # m/s to mm/s
+        radius *= 1000 # m/s to mm/s
         self.API.drive(int(velocity), int(radius))
 
             
@@ -472,13 +469,17 @@ class Roomba(object):
             velocity = velocity in m/s at which the Roomba will drive
             distance = distance in m which the Roomba will drive, negative 
                        distance means the roomba will drive backwards.
+            overrideSafe = bool that says wether Roomba should stop when bumped
+                           or when picked up (True), or whether it should stop
+                           driving (False).
+        OUTPUTS:
+            None
         """
         s = 0 #distance driven
         th = 0 #angle turned
         velocity = abs(velocity*1000) #mm/s to m/s
         
         if self.sensors.checkSafe()  or overrideSafe:
-    # TODO check speed limits
             self.API.speed = int(velocity)
             
             if distance <= 0:
@@ -509,7 +510,6 @@ class Roomba(object):
             self.stop()
 #==============================================================================
     def turnAngle(self, velocity, angle, overrideSafe = False):
-        # TODO check functionality
         """
         Function that lets the Roomba turn a specified angle around it axis.
         
@@ -518,9 +518,12 @@ class Roomba(object):
             angle = the angle in radians that the Roomba will turn, a positive
                     angle means that the Roomba will turn CCW, a negative angle
                     means that the Roomba will turn CW.
+            overrideSafe = bool that says wether Roomba should stop when bumped
+               or when picked up (True), or whether it should stop
+               driving (False).
         
         OUTPUTS:
-            none
+            None
         
         """
         s = 0 #distance driven
@@ -530,7 +533,6 @@ class Roomba(object):
         velocity = abs(velocity*1000) #mm/s to m/s
         
         if self.sensors.checkSafe() or overrideSafe:
-    # TODO check speed limits
             self.API.speed = int(velocity)
             
             if angle <= 0:
@@ -567,7 +569,6 @@ class Roomba(object):
         and an angle, at a certain velocity.
         
         INPUTS:
-            self = Roomba object
             velocity = speed at which roomba will drive in m/s, positive 
                        speed makes Roomba drive forward, negative speed makes
                        roomba drive backwards.
@@ -577,7 +578,7 @@ class Roomba(object):
             angle  = angle of the arc segment in radians
             
         OUTPUTS:
-            none
+            None
         """
         s = 0
         th = 0
@@ -586,7 +587,6 @@ class Roomba(object):
         # Conversion from m to mm
         velocity *= 1000
         radius *= 1000
-        # TODO check speed limits
         safe = self.sensors.checkSafe()
         
         if safe:
@@ -612,8 +612,6 @@ class Roomba(object):
                 # Handle unexpected odometry errors
                 if abs(dth) >= 100: 
                     dth = 0
-#                print "ds: ", ds
-#                print "dth: ", dth
                 safe = self.sensors.checkSafe()
                 wall = self.sensors.getWallSensor()
                 if wallFollower:
@@ -632,10 +630,10 @@ class Roomba(object):
         Function to stop Roomba from driving
         
         INPUTS:
-            self = Roomba object
+            None
         
         OUTPUTS:
-            none
+            None
         """
         try:
             self.API.stop()
@@ -648,7 +646,7 @@ class Roomba(object):
         Function that returns the current status of the clean button. 
         
         INPUTS:
-            self = Roomba object
+            None
         
         OUTPUTS:
             clean = status of clean button. False if button is not pressed, 
@@ -663,7 +661,7 @@ class Roomba(object):
         Function that returns the current status of the dock button. 
         
         INPUTS:
-            self = Roomba object
+            None
         
         OUTPUTS:
             dock = status of dock button. False if button is not pressed, 
@@ -678,7 +676,7 @@ class Roomba(object):
         Function that returns the current status of the spot button. 
         
         INPUTS:
-            self = Roomba object
+            None
         
         OUTPUTS:
             spot = status of dock button. False if button is not pressed, 
@@ -694,7 +692,6 @@ class Roomba(object):
         Function to turn on 'clean' LED in the middle of the roomba.
         
         INPUTS:
-            self = Roomba object
             
             color = string that selects the color that the LED will have, allowed 
                     inputs are:
@@ -732,7 +729,6 @@ class Roomba(object):
             Function to flash 'clean' LED in the middle of the roomba.
             
             INPUTS:
-                self = Roomba object
                 
                 color = single character that selects the color that the LED will
                         have, allowed inputs are:
@@ -746,7 +742,7 @@ class Roomba(object):
                flashTime = time in seconds between flashes
                
             OUTPUTS:
-               none
+               None
         """
     
     
@@ -772,7 +768,7 @@ class Roomba(object):
                   TFC: plays the first 4 notes of the final countdown.
                   
         OUTPUTS:
-            none
+            None
         """
         self.API.song(songNum, song)
 #==============================================================================
@@ -784,7 +780,7 @@ class Roomba(object):
             songNum: location of the song, as specified in song()
         
         OUTPUTS:
-            none
+            None
         """
         self.API.play(songNum)       
         
@@ -803,10 +799,11 @@ if __name__ == "__main__":
     if "-help" in flags:
         print "Possible flags: "
         print "\t-help: get general information."
-        print "\t-FSM: a wall follower FSM."
         print "\t-demo: start a short demo that illustrates different"
         print "\t       aspects of the Roomba platform."
         print "\t-lidardemo: shows lidar functionality."
+        print "\t-FSM: a wall follower FSM."
+        print "\t-FSMLidar: a wall follower FSM that used the LIDAR"
         print "\t-control: manually control Roomba with the numpad"
         print "\t-off: turn Roomba off. THIS DOES NOT SAFELY SHUTDOWN THE PI!"
     
@@ -817,9 +814,6 @@ if __name__ == "__main__":
         except:
             roomba = Roomba(alternativePort, baudrate)
 
-#        roomba.API.connect()
-#        roomba.ECS.sci.full()
-#        roomba.API.control()
         roomba.loadSong(1, 'BEEP')
         roomba.loadSong(2, 'TFC')
         roomba.loadSong(3, 'SW')
@@ -827,11 +821,10 @@ if __name__ == "__main__":
         
         # Initial parameters
         speed = 0.2 #[m/s]
-        distance = 1 #[m]
-        followRadius = 750 #[mm]
-        bigRadius = -2 #[m]
-        angle_threshold = math.radians(80) #[rad]
-        state = "start" # Initial state
+        followRadius = 750 # Arc radius when following walls [mm]
+        bigRadius = -2 # Arc radius when wall is lost [m]
+        angle_threshold = math.radians(80) # threshold on angle to detect that wall is lost [rad]
+        state = "start"
         
         # Start program only after clean button has been pushed.
         startFSM = False
@@ -993,7 +986,6 @@ if __name__ == "__main__":
         
         # Initial parameters
         speed = 0.2 #[m/s]
-        distance = 1 #[m]
         followRadius = 750 #[mm]
         bigRadius = -2 #[m]
         angle_threshold = math.radians(80) #[rad]
@@ -1134,7 +1126,7 @@ if __name__ == "__main__":
                 roomba.play(2)
                 roomba.stop()
                 
-                # Pauze untill user input is received
+                # Pauze until user input is received
                 pauze = True
                 while pauze:
                     if roomba.getClean():
@@ -1217,7 +1209,6 @@ if __name__ == "__main__":
     elif "-lidardemo" in flags:
         roomba = Roomba(port, baudrate)
         roomba.sensors.lidar.initLidar()
-#        time.sleep(2)
         t_wait = 2
         
         t_start = time.time()
